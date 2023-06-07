@@ -54,6 +54,8 @@ var backupSymVects = [];
 var stack = [];
 var undoStack = [];
 var backupStack = [];
+var frontBez = [];
+var rearBez = [];
 
 var scrRadius = 200;
 var scrCenterX;
@@ -1832,7 +1834,7 @@ function MapOne(myMap, myOrbi,x,y,z) {
 
 } // end MapOne
 
-function drawLine(context, A, B, myColor, myColorLite ) {
+function findLineBez(context, A, B, myColor, myColorLite ) {
 
       var pvect = normalize(cross(A,B));
 
@@ -1872,10 +1874,17 @@ function drawLine(context, A, B, myColor, myColorLite ) {
         var pt7 = vect2screen(midMajB);
         var pt8 = vect2screen(maj);
 
-        // draw the back arc
+        // Save the back arc as Bez
+        if (lineMode === 1) {   
+           rearBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColorLite, 0]);
+        } else {
+           rearBez.push([pt5[0],pt5[1],pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1],myColorLite, 0]);
+        }
+/*
         context.beginPath();
         context.lineWidth = 3;
         context.strokeStyle = myColorLite;
+
         if (lineMode === 1) {   
           context.moveTo(pt1[0],pt1[1]);
           context.bezierCurveTo(pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]);
@@ -1884,8 +1893,15 @@ function drawLine(context, A, B, myColor, myColorLite ) {
           context.bezierCurveTo(pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]);
         }
         context.stroke();
+*/
  
-        // draw the near arc
+        // Save the near arc as Bez
+        if (lineMode === 1) {   
+          frontBez.push([pt5[0],pt5[1],pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1],myColor, 0]);
+        } else {
+          frontBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColor, 0]);
+        }
+/*
         context.beginPath();
         context.lineWidth = 3;
         context.strokeStyle = myColor;
@@ -1897,6 +1913,8 @@ function drawLine(context, A, B, myColor, myColorLite ) {
           context.bezierCurveTo(pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]);
         }
         context.stroke();
+
+*/
 
       } else { // points on same side of sphere
         // find bezier curve
@@ -1908,7 +1926,13 @@ function drawLine(context, A, B, myColor, myColorLite ) {
         var pt2 = vect2screen(midA);
         var pt3 = vect2screen(midB);
         var pt4 = vect2screen(B);
+        if (lineMode === 3) {  
+          rearBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColorLite, 0]);
+        } else {
+          frontBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColor, 0]);
+        }
 
+/*
         context.beginPath();
         context.lineWidth = 3;
         context.moveTo(pt1[0],pt1[1]);
@@ -1916,11 +1940,13 @@ function drawLine(context, A, B, myColor, myColorLite ) {
         context.strokeStyle = myColor;
         if (lineMode === 3) {  context.strokeStyle = myColorLite; }
         context.stroke();
+*/
+
       }
 }
 
 
-function drawShape(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, myFill) {
+function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, myFill) {
 
   // hex to rgb
   var rgb = [
@@ -1949,11 +1975,12 @@ function drawShape(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor,
       for (i=0;i<myRot;i++) {
         var AA = multVectMat(posA3dZ,rotMat(symVects[0],symRotAng*i));
         var BB = multVectMat(posB3dZ,rotMat(symVects[0],symRotAng*i));
-        drawLine(context,AA,BB,myColor,myColorLite);
+        findLineBez(context,AA,BB,myColor,myColorLite);
       }
 
     } // end map loop
   } // end line
+
   if (myMode === 2) { // circle
 /*
     var myRadius = Math.sqrt((myX1-myX2)**2+(myY1-myY2)**2);
@@ -2016,7 +2043,7 @@ function drawShape(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor,
     } // end map loop/
 */
   } // end polygon
-} // end drawShape()
+} // end findBez()
 
 function draw() {
 
@@ -2031,6 +2058,16 @@ function draw() {
   var canvasX = Math.round(event.clientX - cRect.left);  
   var canvasY = Math.round(event.clientY - cRect.top);
 
+  frontBez = [];
+  rearBez = [];
+
+// find bez of saved shapes
+  context.lineWidth = 1;
+  stack.forEach(function(nextShape) {
+    findBez(context, nextShape[0],nextShape[1],nextShape[2],nextShape[3],nextShape[4],
+              nextShape[5],nextShape[6],nextShape[7],nextShape[8]);
+  });
+
 // draw sphere outline
   context.beginPath();
   context.lineWidth = 2;
@@ -2038,16 +2075,43 @@ function draw() {
   context.strokeStyle = "black";
   context.stroke();
 
-// draw saved shapes
-  context.lineWidth = 1;
-  stack.forEach(function(nextShape) {
-    drawShape(context, nextShape[0],nextShape[1],nextShape[2],nextShape[3],nextShape[4],
-              nextShape[5],nextShape[6],nextShape[7],nextShape[8]);
+// find bez of current shape
+  findBez(context, mode,posA3d[0],posA3d[1],posA3d[2],posB3d[0],posB3d[1],posB3d[2],color,fill);
+
+
+// draw rear Bez
+  rearBez.forEach(function(bez) {
+    context.beginPath();
+
+    context.moveTo(bez[0],bez[1]);
+    context.bezierCurveTo(bez[2],bez[3],bez[4],bez[5],bez[6],bez[7]);
+
+    context.lineWidth = 3;
+    context.strokeStyle = bez[8];
+    context.stroke();
+  });
+
+// draw sphere outline
+  context.beginPath();
+  context.lineWidth = 2;
+  context.arc(scrCenterX, scrCenterY,scrRadius,0,2*Math.PI);
+  context.strokeStyle = "black";
+  context.stroke();
+
+// draw front Bez
+  frontBez.forEach(function(bez) {
+    context.beginPath();
+
+    context.moveTo(bez[0],bez[1]);
+    context.bezierCurveTo(bez[2],bez[3],bez[4],bez[5],bez[6],bez[7]);
+
+    context.lineWidth = 3;
+    context.strokeStyle = bez[8];
+    context.stroke();
   });
 
 
-// draw current shape
-  drawShape(context, mode,posA3d[0],posA3d[1],posA3d[2],posB3d[0],posB3d[1],posB3d[2],color,fill);
+
 
 if (mode ===0) {
 // draw vector control point
