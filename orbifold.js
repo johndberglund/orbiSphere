@@ -1835,114 +1835,73 @@ function MapOne(myMap, myOrbi,x,y,z) {
 } // end MapOne
 
 function findLineBez(context, A, B, myColor, myColorLite ) {
+  var pvect = normalize(cross(A,B));
 
-      var pvect = normalize(cross(A,B));
+  // are points of line on top or bottom of sphere?
+  // lineMode 0=top,top. 1=bot,top. 2=top,bot. 3=bot,bot
+  var lineMode = 0;
+  if (A[2]<0) {lineMode = 1};
+  if (B[2]<0) {lineMode += 2};
 
-      // are points of line on top or bottom of sphere?
-      // lineMode 0=top,top. 1=bot,top. 2=top,bot. 3=bot,bot
-      var lineMode = 0;
-      if (A[2]<0) {lineMode = 1};
-      if (B[2]<0) {lineMode += 2};
+  var tanA = normalize(cross(pvect,A));
+  var tanB = normalize(cross(B,pvect));
 
-      var tanA = normalize(cross(pvect,A));
-      var tanB = normalize(cross(B,pvect));
+  if (lineMode === 1 || lineMode === 2) { // points on opposite sides of sphere
+    // find major axis of ellipse. then bezier curve.
+    var maj = normalize(cross([0,0,1],pvect));
+    if (lineMode === 2) {maj = vectScale(maj,-1)}
+    var tanMajA = normalize(cross(maj,pvect));
+    var tanMajB = vectScale(tanMajA,-1);
+    var myAngA = Math.acos(dot(maj,A));
+    var myAngB = Math.acos(dot(maj,B));
+    var k2A = .011 + .276*myAngA + .0436*myAngA*myAngA;
+    var k2B = .011 + .276*myAngB + .0436*myAngB*myAngB;
+    var midA = vectSum(A,vectScale(tanA,k2A));
+    var midB = vectSum(B,vectScale(tanB,k2B));
+    var midMajA = vectSum(maj,vectScale(tanMajA,k2A));
+    var midMajB = vectSum(maj,vectScale(tanMajB,k2B));
 
-      if (lineMode === 1 || lineMode === 2) { // points on opposite sides of sphere
-        // find major axis of ellipse. then bezier curve.
-        var maj = normalize(cross([0,0,1],pvect));
-        if (lineMode === 2) {maj = vectScale(maj,-1)}
-        var tanMajA = normalize(cross(maj,pvect));
-        var tanMajB = vectScale(tanMajA,-1);
-        var myAngA = Math.acos(dot(maj,A));
-        var myAngB = Math.acos(dot(maj,B));
-        var k2A = .011 + .276*myAngA + .0436*myAngA*myAngA;
-        var k2B = .011 + .276*myAngB + .0436*myAngB*myAngB;
-        var midA = vectSum(A,vectScale(tanA,k2A));
-        var midB = vectSum(B,vectScale(tanB,k2B));
-        var midMajA = vectSum(maj,vectScale(tanMajA,k2A));
-        var midMajB = vectSum(maj,vectScale(tanMajB,k2B));
+    // first point - to major axis.
+    var pt1 = vect2screen(A);
+    var pt2 = vect2screen(midA);
+    var pt3 = vect2screen(midMajA);
+    var pt4 = vect2screen(maj);
 
-        // first point - to major axis.
-        var pt1 = vect2screen(A);
-        var pt2 = vect2screen(midA);
-        var pt3 = vect2screen(midMajA);
-        var pt4 = vect2screen(maj);
+    // second point - to major axis.
+    var pt5 = vect2screen(B);
+    var pt6 = vect2screen(midB);
+    var pt7 = vect2screen(midMajB);
+    var pt8 = vect2screen(maj);
 
-        // second point - to major axis.
-        var pt5 = vect2screen(B);
-        var pt6 = vect2screen(midB);
-        var pt7 = vect2screen(midMajB);
-        var pt8 = vect2screen(maj);
-
-        // Save the back arc as Bez
-        if (lineMode === 1) {   
-           rearBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColorLite, 0]);
-        } else {
-           rearBez.push([pt5[0],pt5[1],pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1],myColorLite, 0]);
-        }
-/*
-        context.beginPath();
-        context.lineWidth = 3;
-        context.strokeStyle = myColorLite;
-
-        if (lineMode === 1) {   
-          context.moveTo(pt1[0],pt1[1]);
-          context.bezierCurveTo(pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]);
-        } else {
-          context.moveTo(pt5[0],pt5[1]);
-          context.bezierCurveTo(pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]);
-        }
-        context.stroke();
-*/
+    // Save the back arc as Bez
+    if (lineMode === 1) {   
+      rearBez.push([pt1[0],pt1[1],[[pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]],myColorLite, 0]);
+    } else {
+      rearBez.push([pt5[0],pt5[1],[[pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]]],myColorLite, 0]);
+    }
  
-        // Save the near arc as Bez
-        if (lineMode === 1) {   
-          frontBez.push([pt5[0],pt5[1],pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1],myColor, 0]);
-        } else {
-          frontBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColor, 0]);
-        }
-/*
-        context.beginPath();
-        context.lineWidth = 3;
-        context.strokeStyle = myColor;
-        if (lineMode === 1) {   
-          context.moveTo(pt5[0],pt5[1]);
-          context.bezierCurveTo(pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]);
-        } else {
-          context.moveTo(pt1[0],pt1[1]);
-          context.bezierCurveTo(pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]);
-        }
-        context.stroke();
-
-*/
-
-      } else { // points on same side of sphere
-        // find bezier curve
-        var myAng = Math.acos(dot(A,B));
-        var k2 = .011 + .276*myAng + .0436*myAng*myAng;
-        var midA = vectSum(A,vectScale(tanA,k2));
-        var midB = vectSum(B,vectScale(tanB,k2));
-        var pt1 = vect2screen(A);
-        var pt2 = vect2screen(midA);
-        var pt3 = vect2screen(midB);
-        var pt4 = vect2screen(B);
-        if (lineMode === 3) {  
-          rearBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColorLite, 0]);
-        } else {
-          frontBez.push([pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1],myColor, 0]);
-        }
-
-/*
-        context.beginPath();
-        context.lineWidth = 3;
-        context.moveTo(pt1[0],pt1[1]);
-        context.bezierCurveTo(pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]);
-        context.strokeStyle = myColor;
-        if (lineMode === 3) {  context.strokeStyle = myColorLite; }
-        context.stroke();
-*/
-
-      }
+    // Save the near arc as Bez
+    if (lineMode === 1) {   
+      frontBez.push([pt5[0],pt5[1],[[pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]]],myColor, 0]);
+    } else {
+      frontBez.push([pt1[0],pt1[1],[[pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]],myColor, 0]);
+    }
+  } else { // points on same side of sphere
+    // find bezier curve
+    var myAng = Math.acos(dot(A,B));
+    var k2 = .011 + .276*myAng + .0436*myAng*myAng;
+    var midA = vectSum(A,vectScale(tanA,k2));
+    var midB = vectSum(B,vectScale(tanB,k2));
+    var pt1 = vect2screen(A);
+    var pt2 = vect2screen(midA);
+    var pt3 = vect2screen(midB);
+    var pt4 = vect2screen(B);
+    if (lineMode === 3) {  
+      rearBez.push([pt1[0],pt1[1],[[pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]],myColorLite, 0]);
+    } else {
+      frontBez.push([pt1[0],pt1[1],[[pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]],myColor, 0]);
+    }
+  }
 }
 
 
@@ -2046,7 +2005,6 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
 } // end findBez()
 
 function draw() {
-
   var c = document.getElementById("myCanvas");
   var context = c.getContext("2d");
   context.beginPath();
@@ -2061,56 +2019,69 @@ function draw() {
   frontBez = [];
   rearBez = [];
 
-// find bez of saved shapes
+  // draw sphere outline. This is a hack so we see the sphere initially.
+  context.beginPath();
+  context.lineWidth = 2;
+  context.arc(scrCenterX, scrCenterY,scrRadius,0,2*Math.PI);
+  context.strokeStyle = "black";
+  context.stroke();
+
+  // find bez of saved shapes
   context.lineWidth = 1;
   stack.forEach(function(nextShape) {
     findBez(context, nextShape[0],nextShape[1],nextShape[2],nextShape[3],nextShape[4],
               nextShape[5],nextShape[6],nextShape[7],nextShape[8]);
   });
 
-// draw sphere outline
-  context.beginPath();
-  context.lineWidth = 2;
-  context.arc(scrCenterX, scrCenterY,scrRadius,0,2*Math.PI);
-  context.strokeStyle = "black";
-  context.stroke();
-
-// find bez of current shape
+  // find bez of current shape
   findBez(context, mode,posA3d[0],posA3d[1],posA3d[2],posB3d[0],posB3d[1],posB3d[2],color,fill);
 
-
-// draw rear Bez
+  // draw rear Bez
   rearBez.forEach(function(bez) {
+//alert(JSON.stringify(bez));
     context.beginPath();
-
     context.moveTo(bez[0],bez[1]);
-    context.bezierCurveTo(bez[2],bez[3],bez[4],bez[5],bez[6],bez[7]);
+    var partList = bez[2];
+    partList.forEach(function(nextPart) {
+      context.bezierCurveTo(nextPart[0],nextPart[1],nextPart[2],nextPart[3],nextPart[4],nextPart[5]);
+    });
 
-    context.lineWidth = 3;
-    context.strokeStyle = bez[8];
-    context.stroke();
+    if (bez[4] === 0) {
+      context.lineWidth = 3;
+      context.strokeStyle = bez[3];
+      context.stroke();
+    } else {
+      context.fillStyle = bez[3];
+      context.fill();
+    }
   });
 
-// draw sphere outline
+  // draw sphere outline
   context.beginPath();
   context.lineWidth = 2;
   context.arc(scrCenterX, scrCenterY,scrRadius,0,2*Math.PI);
   context.strokeStyle = "black";
   context.stroke();
 
-// draw front Bez
+  // draw front Bez
   frontBez.forEach(function(bez) {
+//alert(JSON.stringify(bez));
     context.beginPath();
-
     context.moveTo(bez[0],bez[1]);
-    context.bezierCurveTo(bez[2],bez[3],bez[4],bez[5],bez[6],bez[7]);
-
-    context.lineWidth = 3;
-    context.strokeStyle = bez[8];
-    context.stroke();
+    var partList = bez[2];
+//alert(JSON.stringify(partList));
+    partList.forEach(function(nextPart) {
+      context.bezierCurveTo(nextPart[0],nextPart[1],nextPart[2],nextPart[3],nextPart[4],nextPart[5]);
+    });
+    if (bez[4] === 0) {
+      context.lineWidth = 3;
+      context.strokeStyle = bez[3];
+      context.stroke();
+    } else {
+      context.fillStyle = bez[3];
+      context.fill();
+    }
   });
-
-
 
 
 if (mode ===0) {
