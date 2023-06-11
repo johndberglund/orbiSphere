@@ -1901,12 +1901,12 @@ function findLineBez(context, A, B, myColor, myColorLite ) {
   }
 } //end findLineBez
 
-function findPolyBez(context, myMode, myPoly, myColor, myColorLite ) {
+function findPolyBez(context, myMode, thisPoly, myColor, myColorLite ) {
 
-  for (i=1; i<myPoly.length; i++) {
-    findLineBez(context, myPoly[i-1], myPoly[i], myColor, myColorLite);
+  for (var i=1; i<thisPoly.length; i++) {
+    findLineBez(context, thisPoly[i-1], thisPoly[i], myColor, myColorLite);
   }
-  findLineBez(context, myPoly[0], myPoly[myPoly.length-1], myColor, myColorLite);
+  findLineBez(context, thisPoly[0], thisPoly[thisPoly.length-1], myColor, myColorLite);
 
 //  if (myFill === 0) {
 //    context.strokeStyle = myColor;
@@ -1977,7 +1977,7 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
 */
   } // end circle
   if (myMode > 2) { // polygon
-
+    // find vertices for original poly
     var angleStep = 2 * Math.PI / myMode;
     var myPoly = [];
     for (k = 0;k<myMode;k++) {
@@ -1993,8 +1993,7 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
 
       // rotate shapes around first axis.
       var symRotAng = 2*Math.PI/myRot;
-
-      for (i=0;i<myRot;i++) {
+      for (var i=0;i<myRot;i++) {
         var curMatrix = rotMat(symVects[0],symRotAng*i)
         var rotPoly = [];
         mapPoly.forEach(function(vertex) {
