@@ -21,9 +21,6 @@ var Ax, Ay, Bx, By; // start and end points
 var color="#000000";
 var fill=0; // 0 or 1
 
-
-
-
 var img;
 var boxSize = 7;
 
@@ -60,8 +57,8 @@ var rearBez = [];
 var scrRadius = 200;
 var scrCenterX;
 var scrCenterY;
-var posB3d;
-var posA3d;
+var posB3d = [];
+var posA3d = [];
 
 function init() {
 
@@ -1902,11 +1899,26 @@ function findLineBez(context, A, B, myColor, myColorLite ) {
       frontBez.push([pt1[0],pt1[1],[[pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]],myColor, 0]);
     }
   }
-}
+} //end findLineBez
 
+function findPolyBez(context, myMode, myPoly, myColor, myColorLite ) {
+
+  for (i=1; i<myPoly.length; i++) {
+    findLineBez(context, myPoly[i-1], myPoly[i], myColor, myColorLite);
+  }
+  findLineBez(context, myPoly[0], myPoly[myPoly.length-1], myColor, myColorLite);
+
+//  if (myFill === 0) {
+//    context.strokeStyle = myColor;
+//    context.stroke();
+//  } else {
+//    context.fillStyle = myColor;
+//    context.fill();
+//  }
+
+} //end findPolyBez
 
 function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, myFill) {
-
   // hex to rgb
   var rgb = [
     parseInt(myColor.substr(-6,2),16),
@@ -1926,14 +1938,12 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
       var posA3dZ = MapOne(map,orbi,myX1,myY1,myZ1);
       var posB3dZ = MapOne(map,orbi,myX2,myY2,myZ2);
 
- //     var posA3dZ = [myX1, myY1, myZ1];
- //     var posB3dZ = [myX2, myY2, myZ2];
-
       // rotate shapes around first axis.
       var symRotAng = 2*Math.PI/myRot;
       for (i=0;i<myRot;i++) {
-        var AA = multVectMat(posA3dZ,rotMat(symVects[0],symRotAng*i));
-        var BB = multVectMat(posB3dZ,rotMat(symVects[0],symRotAng*i));
+        var curMatrix = rotMat(symVects[0],symRotAng*i)
+        var AA = multVectMat(posA3dZ,curMatrix);
+        var BB = multVectMat(posB3dZ,curMatrix);
         findLineBez(context,AA,BB,myColor,myColorLite);
       }
 
@@ -1967,40 +1977,34 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
 */
   } // end circle
   if (myMode > 2) { // polygon
-/*
+
     var angleStep = 2 * Math.PI / myMode;
+    var myPoly = [];
+    for (k = 0;k<myMode;k++) {
+      var nextVertex = multVectMat([myX2, myY2, myZ2],rotMat([myX1, myY1, myZ1],angleStep*k ));
+      myPoly.push(nextVertex);
+    } // end k loop
+
     for (map=1;map<=NumMaps;map++) {
-      var pt3 = MapOne(map,orbi,myX1,myY1);
-      var pt4 = MapOne(map,orbi,myX2,myY2);
-      for (i=0;i<1;i++) {
-        var xAdd1 = i*TranAx;
-        var yAdd1 = i*TranAy;
-        for (j=0;j<1;j++) {
-          var xDiff = pt4[0]-pt3[0];
-          var yDiff = pt4[1]-pt3[1];
-          var xAdd = xAdd1 + j*TranBx;
-          var yAdd = yAdd1 + j*TranBy;
-          context.beginPath();
-          context.moveTo(pt4[0]+xAdd, pt4[1]+yAdd);
-          for (k = 1;k<myMode;k++) {
-            var nowX = Math.cos(k * angleStep);
-            var nowY = Math.sin(k * angleStep);
-            var Dx = nowX * xDiff - nowY * yDiff + pt3[0]+xAdd;
-            var Dy = nowX * yDiff + nowY * xDiff + pt3[1]+yAdd;
-            context.lineTo(Dx, Dy);
-          }
-          context.lineTo(pt4[0]+xAdd, pt4[1]+yAdd);
-          if (myFill === 0) {
-            context.strokeStyle = myColor;
-            context.stroke();
-          } else {
-            context.fillStyle = myColor;
-            context.fill();
-          }
-        } // end j loop
-      } // end i loop
-    } // end map loop/
-*/
+      var mapPoly = [];
+      myPoly.forEach(function(vertex) {
+        mapPoly.push(MapOne(map,orbi,vertex[0],vertex[1],vertex[2]));
+      });
+
+      // rotate shapes around first axis.
+      var symRotAng = 2*Math.PI/myRot;
+
+      for (i=0;i<myRot;i++) {
+        var curMatrix = rotMat(symVects[0],symRotAng*i)
+        var rotPoly = [];
+        mapPoly.forEach(function(vertex) {
+          rotPoly.push(multVectMat(vertex,curMatrix));
+        });
+        findPolyBez(context,myMode,rotPoly,myColor,myColorLite);
+      }
+
+    } // end map loop
+
   } // end polygon
 } // end findBez()
 
@@ -2019,13 +2023,6 @@ function draw() {
   frontBez = [];
   rearBez = [];
 
-  // draw sphere outline. This is a hack so we see the sphere initially.
-  context.beginPath();
-  context.lineWidth = 2;
-  context.arc(scrCenterX, scrCenterY,scrRadius,0,2*Math.PI);
-  context.strokeStyle = "black";
-  context.stroke();
-
   // find bez of saved shapes
   context.lineWidth = 1;
   stack.forEach(function(nextShape) {
@@ -2038,7 +2035,6 @@ function draw() {
 
   // draw rear Bez
   rearBez.forEach(function(bez) {
-//alert(JSON.stringify(bez));
     context.beginPath();
     context.moveTo(bez[0],bez[1]);
     var partList = bez[2];
@@ -2065,11 +2061,9 @@ function draw() {
 
   // draw front Bez
   frontBez.forEach(function(bez) {
-//alert(JSON.stringify(bez));
     context.beginPath();
     context.moveTo(bez[0],bez[1]);
     var partList = bez[2];
-//alert(JSON.stringify(partList));
     partList.forEach(function(nextPart) {
       context.bezierCurveTo(nextPart[0],nextPart[1],nextPart[2],nextPart[3],nextPart[4],nextPart[5]);
     });
