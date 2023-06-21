@@ -1901,24 +1901,131 @@ function findLineBez(context, A, B, myColor, myColorLite ) {
   }
 } //end findLineBez
 
-function findPolyBez(context, myMode, thisPoly, myColor, myColorLite ) {
+function findLineBez2(A, B) {
+  var myReturn = [];
+  var pvect = normalize(cross(A,B));
 
-  for (var i=1; i<thisPoly.length; i++) {
-    findLineBez(context, thisPoly[i-1], thisPoly[i], myColor, myColorLite);
+  // are points of line on top or bottom of sphere?
+  // lineMode 0=top,top. 1=bot,top. 2=top,bot. 3=bot,bot
+  var lineMode = 0;
+  if (A[2]<0) {lineMode = 1};
+  if (B[2]<0) {lineMode += 2};
+//alert(lineMode);
+  var tanA = normalize(cross(pvect,A));
+  var tanB = normalize(cross(B,pvect));
+
+  if (lineMode === 1 || lineMode === 2) { // points on opposite sides of sphere
+    // find major axis of ellipse. then bezier curve.
+    var maj = normalize(cross([0,0,1],pvect));
+    if (lineMode === 2) {maj = vectScale(maj,-1)}
+    var tanMajA = normalize(cross(maj,pvect));
+    var tanMajB = vectScale(tanMajA,-1);
+    var myAngA = Math.acos(dot(maj,A));
+    var myAngB = Math.acos(dot(maj,B));
+    var k2A = .011 + .276*myAngA + .0436*myAngA*myAngA;
+    var k2B = .011 + .276*myAngB + .0436*myAngB*myAngB;
+    var midA = vectSum(A,vectScale(tanA,k2A));
+    var midB = vectSum(B,vectScale(tanB,k2B));
+    var midMajA = vectSum(maj,vectScale(tanMajA,k2A));
+    var midMajB = vectSum(maj,vectScale(tanMajB,k2B));
+
+    // first point - to major axis.
+    var pt1 = vect2screen(A);
+    var pt2 = vect2screen(midA);
+    var pt3 = vect2screen(midMajA);
+    var pt4 = vect2screen(maj);
+
+    // second point - to major axis.
+    var pt5 = vect2screen(B);
+    var pt6 = vect2screen(midB);
+    var pt7 = vect2screen(midMajB);
+    var pt8 = vect2screen(maj);
+
+    // Save arcs as Bez
+    if (lineMode === 1) {   
+      myReturn.push([-1,pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]);
+      myReturn.push([1,pt5[0],pt5[1],pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]]);
+    } else {
+      myReturn.push([1,pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]);
+      myReturn.push([-1,pt5[0],pt5[1],pt6[0],pt6[1],pt7[0],pt7[1],pt8[0],pt8[1]]);
+    }
+ 
+  } else { // points on same side of sphere
+    // find bezier curve
+    var myAng = Math.acos(dot(A,B));
+    var k2 = .011 + .276*myAng + .0436*myAng*myAng;
+    var midA = vectSum(A,vectScale(tanA,k2));
+    var midB = vectSum(B,vectScale(tanB,k2));
+    var pt1 = vect2screen(A);
+    var pt2 = vect2screen(midA);
+    var pt3 = vect2screen(midB);
+    var pt4 = vect2screen(B);
+    if (lineMode === 3) {  
+      myReturn.push([-1,pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]);
+    } else {
+      myReturn.push([1,pt1[0],pt1[1],pt2[0],pt2[1],pt3[0],pt3[1],pt4[0],pt4[1]]);
+    }
   }
-  findLineBez(context, thisPoly[0], thisPoly[thisPoly.length-1], myColor, myColorLite);
+  return(myReturn);
+} //end findLineBez2
 
-//  if (myFill === 0) {
-//    context.strokeStyle = myColor;
-//    context.stroke();
-//  } else {
-//    context.fillStyle = myColor;
-//    context.fill();
-//  }
+function findPolyBez(context, myMode, thisPoly, myColor, myColorLite, myFill ) {
+  if (myFill === 0) { // No fill.
+    for (var i=1; i<thisPoly.length; i++) {
+      findLineBez(context, thisPoly[i-1], thisPoly[i], myColor, myColorLite);
+    }
+    findLineBez(context, thisPoly[0], thisPoly[thisPoly.length-1], myColor, myColorLite);
+  } else { // fill
+    var rearBezList = [];
+    var frontBezList = [];
+//   var backupBezList = [];
 
+    for (var i=1; i<thisPoly.length; i++) {
+      var nextLineBez = findLineBez2(thisPoly[i-1], thisPoly[i]);
+
+//alert(JSON.stringify(nextLineBez));
+
+      if (nextLineBez[0][0] === 1) {
+        frontBezList.push(nextLineBez[0]);
+      } else {
+        rearBezList.push(nextLineBez[0]);
+      }
+
+      if (nextLineBez.length>1) { // two bez curves
+alert('not yet ready for both sides of sphere');        
+
+      } 
+      
+    }
+
+//alert(JSON.stringify(frontBezList));
+
+ //   findLineBez2(thisPoly[0], thisPoly[thisPoly.length-1]);    
+/*
+    var tempBezList = [];
+    for (var i = 0;i<rearBezList.length;i++) {
+      tempBezlist.push([rearBezList[i][3],rearBezList[i][4],rearBezList[i][5],rearBezList[i][6],
+                        rearBezList[i][7],rearBezList[i][8]]);
+    }
+//alert(JSON.stringify(tempBezList));
+//    rearBez.push([rearBezList[0][1],rearBezList[0][2],tempBezList,myColorLite, 1]);
+*/
+
+ var  tempBezList = [];
+// what to do with null in list when I haven't clicked anything?
+//alert(JSON.stringify(frontBezList));
+    for (var i = 0;i<frontBezList.length;i++) {
+      tempBezList.push([frontBezList[i][3],frontBezList[i][4],frontBezList[i][5],frontBezList[i][6],
+                        frontBezList[i][7],frontBezList[i][8]]);
+    }
+//alert(JSON.stringify(tempBezList));
+    frontBez.push([frontBezList[0][1],frontBezList[0][2],tempBezList,myColor, 1]);
+
+  }
 } //end findPolyBez
 
 function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, myFill) {
+
   // hex to rgb
   var rgb = [
     parseInt(myColor.substr(-6,2),16),
@@ -1934,13 +2041,13 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
   var myColorLite = '#' + (0x1000000 + converting).toString(16).slice(1);
 
   if (myMode === 1) { // line
-    for (map=1;map<=NumMaps;map++) {
+    for (var map=1;map<=NumMaps;map++) {
       var posA3dZ = MapOne(map,orbi,myX1,myY1,myZ1);
       var posB3dZ = MapOne(map,orbi,myX2,myY2,myZ2);
 
       // rotate shapes around first axis.
       var symRotAng = 2*Math.PI/myRot;
-      for (i=0;i<myRot;i++) {
+      for (var i=0;i<myRot;i++) {
         var curMatrix = rotMat(symVects[0],symRotAng*i)
         var AA = multVectMat(posA3dZ,curMatrix);
         var BB = multVectMat(posB3dZ,curMatrix);
@@ -1953,13 +2060,13 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
   if (myMode === 2) { // circle
 /*
     var myRadius = Math.sqrt((myX1-myX2)**2+(myY1-myY2)**2);
-    for (map=1;map<=NumMaps;map++) {
+    for (var map=1;map<=NumMaps;map++) {
       var pt3 = MapOne(map,orbi,myX1,myY1);
       var pt4 = MapOne(map,orbi,myX2,myY2);
-      for (i=0;i<1;i++) {
+      for (var i=0;i<1;i++) {
         var xAdd1 = i*TranAx;
         var yAdd1 = i*TranAy;
-        for (j=0;j<1;j++) {
+        for (var j=0;j<1;j++) {
           var xAdd = xAdd1 + j*TranBx;
           var yAdd = yAdd1 + j*TranBy;
           context.beginPath();
@@ -1980,18 +2087,19 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
     // find vertices for original poly
     var angleStep = 2 * Math.PI / myMode;
     var myPoly = [];
-    for (k = 0;k<myMode;k++) {
+    for (var k = 0;k<myMode;k++) {
       var nextVertex = multVectMat([myX2, myY2, myZ2],rotMat([myX1, myY1, myZ1],angleStep*k ));
       myPoly.push(nextVertex);
     } // end k loop
-
-    for (map=1;map<=NumMaps;map++) {
+    
+    // polygon remapped
+    for (var map=1;map<=NumMaps;map++) {
       var mapPoly = [];
       myPoly.forEach(function(vertex) {
         mapPoly.push(MapOne(map,orbi,vertex[0],vertex[1],vertex[2]));
       });
 
-      // rotate shapes around first axis.
+      // polygon rotated around first axis.
       var symRotAng = 2*Math.PI/myRot;
       for (var i=0;i<myRot;i++) {
         var curMatrix = rotMat(symVects[0],symRotAng*i)
@@ -1999,11 +2107,9 @@ function findBez(context, myMode, myX1, myY1, myZ1, myX2, myY2, myZ2, myColor, m
         mapPoly.forEach(function(vertex) {
           rotPoly.push(multVectMat(vertex,curMatrix));
         });
-        findPolyBez(context,myMode,rotPoly,myColor,myColorLite);
-      }
-
+        findPolyBez(context,myMode,rotPoly,myColor,myColorLite,myFill);
+      } // end i loop
     } // end map loop
-
   } // end polygon
 } // end findBez()
 
@@ -2030,7 +2136,10 @@ function draw() {
   });
 
   // find bez of current shape
-  findBez(context, mode,posA3d[0],posA3d[1],posA3d[2],posB3d[0],posB3d[1],posB3d[2],color,fill);
+// i want it to only do this if we are currently drawing a shape
+  if (posA3d.length > 0) {
+    findBez(context, mode,posA3d[0],posA3d[1],posA3d[2],posB3d[0],posB3d[1],posB3d[2],color,fill);
+  }
 
   // draw rear Bez
   rearBez.forEach(function(bez) {
