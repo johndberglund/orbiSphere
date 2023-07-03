@@ -16,10 +16,10 @@ var orbi = 14;
 
 var NumMaps = 1;
 
-var mode=5; // 0=edit, -1=spin, 1=line, 2=circle, n>=3 is polygon size
+var mode=1; // 0=edit, -1=spin, 1=line, 2=circle, n>=3 is polygon size
 var Ax, Ay, Bx, By; // start and end points
 var color="#000000";
-var fill=1; // 0 or 1
+var fill=0; // 0 or 1
 
 var img;
 var boxSize = 7;
@@ -45,7 +45,7 @@ var By = 300;
 var shapeNum = -1;
 var controlPt;
 
-var myRot = 1;
+var myRot = 6;
 var symVects = [[0,1,0]];
 var backupSymVects = [];
 var stack = [];
