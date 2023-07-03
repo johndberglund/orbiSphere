@@ -11,16 +11,21 @@
 <ul>
   <li class="dropdown"><a>File</a>
     <ul>
+<!--
       <li><a onclick="init()">New</a>
       <li><a><input type="file" name="file" id="loadDesign" 
               class="inputfile" onchange="loadDesign()" />
         <label for="loadDesign">Load design</label></a>
       <li><a onclick="saveSVG()">Save SVG</a>
+-->
       <li><a download="myImage.png" onclick="goPng(this)">Save PNG</a>
-      <li><a onclick="saveDesign()">Save design</a>
+<!--      <li><a onclick="saveDesign()">Save design</a>
+-->
     </ul>
   </li>
+<!--
   <li><a href="#home">Help</a></li>
+-->
 </ul>
 </nav>
 
@@ -157,6 +162,7 @@
 <img src="resources/redo.png" alt="Redo" onclick="goRedo()" title="Redo"></img>
 </center>
 
+<!--
 <div style="float:left">
 <label for="edit">
 <img src="resources/arrow.png" alt="Arrow" title="edit shapes" style="border: 1px solid black"></img>
@@ -164,6 +170,7 @@
 <br>
 <input type="radio" id="edit" name="mode" onchange="setMode(0)" value="edit">
 </div>
+-->
 
 <div>
 <label for="spin">
@@ -181,6 +188,7 @@
 <input type="radio" id="line" name="mode" onchange="setMode(1)" value="line" checked>
 </div>
 
+<!--
 <div style="float:left">
 <label for="circle">
 <img src="resources/circle.png" alt="Circle" title="draw circles" style="border: 1px solid black"></img>
@@ -188,6 +196,7 @@
 <br>
 <input type="radio" id="circle" name="mode" onchange="setMode(2)" value="circle">
 </div>
+-->
 
 <div>
 <label for="poly">
@@ -206,9 +215,12 @@
 <br>
 <input type="checkbox" id="fill" onchange="setFill()"><label for="fill">Fill</label>
 <br>
+<!--
 <input type="checkbox" id="snap" onchange="setSnap()"><label for="snap">Snap</label>
 <br>
+-->
 
+<!--
 <center>
 <img src="resources/up.png" alt="Up" onclick="goUp()"  title="Up"></img>
 </center>
@@ -226,6 +238,7 @@
 <p>
 Coordinates:
 <input type="text" id="myText"></input>
+-->
 </div>
 
 <div id="canvasDiv" style="max-height: 300px; max-width:256px; overflow: scroll; border:3px solid red">
