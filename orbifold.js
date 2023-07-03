@@ -16,10 +16,10 @@ var orbi = 14;
 
 var NumMaps = 1;
 
-var mode=1; // 0=edit, -1=spin, 1=line, 2=circle, n>=3 is polygon size
+var mode=5; // 0=edit, -1=spin, 1=line, 2=circle, n>=3 is polygon size
 var Ax, Ay, Bx, By; // start and end points
 var color="#000000";
-var fill=0; // 0 or 1
+var fill=1; // 0 or 1
 
 var img;
 var boxSize = 7;
@@ -45,7 +45,7 @@ var By = 300;
 var shapeNum = -1;
 var controlPt;
 
-var myRot = 6;
+var myRot = 1;
 var symVects = [[0,1,0]];
 var backupSymVects = [];
 var stack = [];
@@ -1858,13 +1858,13 @@ function findLineBez(context, A, B, myColor, myColorLite ) {
     var midMajA = vectSum(maj,vectScale(tanMajA,k2A));
     var midMajB = vectSum(maj,vectScale(tanMajB,k2B));
 
-    // first point - to major axis.
+    // first point to major axis.
     var pt1 = vect2screen(A);
     var pt2 = vect2screen(midA);
     var pt3 = vect2screen(midMajA);
     var pt4 = vect2screen(maj);
 
-    // second point - to major axis.
+    // major axis to second point.
     var pt5 = vect2screen(B);
     var pt6 = vect2screen(midB);
     var pt7 = vect2screen(midMajB);
@@ -1929,17 +1929,17 @@ function findLineBez2(A, B) {
     var midMajA = vectSum(maj,vectScale(tanMajA,k2A));
     var midMajB = vectSum(maj,vectScale(tanMajB,k2B));
 
-    // first point - to major axis.
+    // first point to major axis.
     var pt1 = vect2screen(A);
     var pt2 = vect2screen(midA);
     var pt3 = vect2screen(midMajA);
     var pt4 = vect2screen(maj);
 
-    // second point - to major axis.
-    var pt5 = vect2screen(B);
-    var pt6 = vect2screen(midB);
-    var pt7 = vect2screen(midMajB);
-    var pt8 = vect2screen(maj);
+    // major axis to second point.
+    var pt5 = vect2screen(maj);
+    var pt6 = vect2screen(midMajB);
+    var pt7 = vect2screen(midB);
+    var pt8 = vect2screen(B);
 
     // Save arcs as Bez
     if (lineMode === 1) {   
@@ -1970,21 +1970,22 @@ function findLineBez2(A, B) {
 } //end findLineBez2
 
 function findPolyBez(context, myMode, thisPoly, myColor, myColorLite, myFill ) {
+//alert(thisPoly);
   if (myFill === 0) { // No fill.
     for (var i=1; i<thisPoly.length; i++) {
       findLineBez(context, thisPoly[i-1], thisPoly[i], myColor, myColorLite);
     }
-    findLineBez(context, thisPoly[0], thisPoly[thisPoly.length-1], myColor, myColorLite);
+    findLineBez(context, thisPoly[thisPoly.length-1], thisPoly[0], myColor, myColorLite);
   } else { // fill
     var rearBezList = [];
     var frontBezList = [];
-//   var backupBezList = [];
-
-    for (var i=1; i<thisPoly.length; i++) {
-      var nextLineBez = findLineBez2(thisPoly[i-1], thisPoly[i]);
-
-//alert(JSON.stringify(nextLineBez));
-
+    for (var i=0; i<thisPoly.length; i++) {
+      var nextLineBez;
+      if (i === 0) {      
+        nextLineBez = findLineBez2(thisPoly[thisPoly.length-1],thisPoly[0]);
+      } else {
+        nextLineBez = findLineBez2(thisPoly[i-1], thisPoly[i]);
+      }
       if (nextLineBez[0][0] === 1) {
         frontBezList.push(nextLineBez[0]);
       } else {
@@ -1992,34 +1993,111 @@ function findPolyBez(context, myMode, thisPoly, myColor, myColorLite, myFill ) {
       }
 
       if (nextLineBez.length>1) { // two bez curves
-alert('not yet ready for both sides of sphere');        
+        if (nextLineBez[0][0] === 1) { // front first
+          if (rearBezList.length === 0 ) { 
+            rearBezList.push(nextLineBez[1]);
+          } else { // second time switching front/rear
+            var x1 = rearBezList[rearBezList.length-1][7];
+            var y1 = rearBezList[rearBezList.length-1][8];
+            var x4 = nextLineBez[1][1];
+            var y4 = nextLineBez[1][2];
+            var xc = scrCenterX;
+            var yc = scrCenterY;
+            var ax = x1 - xc;
+            var ay = y1 - yc;
+            var bx = x4 - xc;
+            var by = y4 - yc;
+            var q1 = ax * ax + ay * ay;
+            var q2 = q1 + ax * bx + ay * by;
+            var k2 = (4/3) * (Math.sqrt(2 * q1 * q2) - q2) / (ax * by - ay * bx);
+            var x2 = xc + ax - k2 * ay;
+            var y2 = yc + ay + k2 * ax;
+            var x3 = xc + bx + k2 * by;                               
+            var y3 = yc + by - k2 * bx;
+            rearBezList.push([1,x1,y1,x2,y2,x3,y3,x4,y4]);
+            rearBezList.push(nextLineBez[1]);
+            frontBezList.push([-1,x4,y4,x3,y3,x2,y2,x1,y1]);
+          } // end second time switching
+        } else { // back first
+          if (frontBezList.length === 0 ) {
+            frontBezList.push(nextLineBez[1]);
+          } else { // second time switching front/rear
+            var x1 = frontBezList[frontBezList.length-1][7];
+            var y1 = frontBezList[frontBezList.length-1][8];
+            var x4 = nextLineBez[1][1];
+            var y4 = nextLineBez[1][2];
+            var xc = scrCenterX;
+            var yc = scrCenterY;
+            var ax = x1 - xc;
+            var ay = y1 - yc;
+            var bx = x4 - xc;
+            var by = y4 - yc;
+            var q1 = ax * ax + ay * ay;
+            var q2 = q1 + ax * bx + ay * by;
+            var k2 = (4/3) * (Math.sqrt(2 * q1 * q2) - q2) / (ax * by - ay * bx);
+            var x2 = xc + ax - k2 * ay;
+            var y2 = yc + ay + k2 * ax;
+            var x3 = xc + bx + k2 * by;                               
+            var y3 = yc + by - k2 * bx;
+            frontBezList.push([1,x1,y1,x2,y2,x3,y3,x4,y4]);
+            frontBezList.push(nextLineBez[1]);
+            rearBezList.push([-1,x4,y4,x3,y3,x2,y2,x1,y1]);
+          } // end second time switching
+        } // end back first
+      } // end two bez curves  
+    } // end loop through n-1 polygon edges
 
-      } 
-      
-    }
 
-//alert(JSON.stringify(frontBezList));
 
- //   findLineBez2(thisPoly[0], thisPoly[thisPoly.length-1]);    
+//var  asOutput = JSON.stringify([myListy,'front',frontBezList,'rear',rearBezList]);
+ // txtToFile(asOutput,"test1","txt");
 /*
-    var tempBezList = [];
-    for (var i = 0;i<rearBezList.length;i++) {
-      tempBezlist.push([rearBezList[i][3],rearBezList[i][4],rearBezList[i][5],rearBezList[i][6],
-                        rearBezList[i][7],rearBezList[i][8]]);
+    // connect the last edge of the polygon
+    var nextLineBez = findLineBez2(thisPoly[thisPoly.length-1],thisPoly[0]);  
+    if (nextLineBez[0][0] === 1) {
+      frontBezList.push(nextLineBez[0]);
+    } else {
+      rearBezList.push(nextLineBez[0]);
     }
-//alert(JSON.stringify(tempBezList));
-//    rearBez.push([rearBezList[0][1],rearBezList[0][2],tempBezList,myColorLite, 1]);
+      if (nextLineBez.length>1) { // two bez curves
+        if (nextLineBez[0][0] === 1) { // front first
+          if (rearBezList.length === 0 ) {
+            rearBezList.push(nextLineBez[1]);
+          } else {
+            rearBezList.push(nextLineBez[1]);
+//alert(JSON.stringify(rearBezList));
+
+          }
+
+        } else { // back first
+          if (frontBezList.length === 0 ) {
+            frontBezList.push(nextLineBez[1]);
+          } else {
+            frontBezList.push(nextLineBez[1]);
+          }
+
+        }
+      } // end two bez curves  
 */
 
- var  tempBezList = [];
-// what to do with null in list when I haven't clicked anything?
-//alert(JSON.stringify(frontBezList));
-    for (var i = 0;i<frontBezList.length;i++) {
-      tempBezList.push([frontBezList[i][3],frontBezList[i][4],frontBezList[i][5],frontBezList[i][6],
-                        frontBezList[i][7],frontBezList[i][8]]);
+
+    var tempBezList = [];
+    if (rearBezList.length>0) {
+      for (var i = 0;i<rearBezList.length;i++) {
+        tempBezList.push([rearBezList[i][3],rearBezList[i][4],rearBezList[i][5],rearBezList[i][6],
+                          rearBezList[i][7],rearBezList[i][8]]);
+      }
+      rearBez.push([rearBezList[0][1],rearBezList[0][2],tempBezList,myColorLite, 1]);
     }
-//alert(JSON.stringify(tempBezList));
-    frontBez.push([frontBezList[0][1],frontBezList[0][2],tempBezList,myColor, 1]);
+
+    tempBezList = [];
+    if (frontBezList.length>0) {
+      for (var i = 0;i<frontBezList.length;i++) {
+        tempBezList.push([frontBezList[i][3],frontBezList[i][4],frontBezList[i][5],frontBezList[i][6],
+                          frontBezList[i][7],frontBezList[i][8]]);
+      }
+      frontBez.push([frontBezList[0][1],frontBezList[0][2],tempBezList,myColor, 1]);
+    } 
 
   }
 } //end findPolyBez
@@ -2155,8 +2233,11 @@ function draw() {
       context.strokeStyle = bez[3];
       context.stroke();
     } else {
+      context.save();
+      context.globalAlpha = .7;  
       context.fillStyle = bez[3];
       context.fill();
+      context.restore();
     }
   });
 
@@ -2180,8 +2261,11 @@ function draw() {
       context.strokeStyle = bez[3];
       context.stroke();
     } else {
+      context.save();
+      context.globalAlpha = .7; 
       context.fillStyle = bez[3];
       context.fill();
+      context.restore();
     }
   });
 

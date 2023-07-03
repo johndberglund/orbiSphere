@@ -141,7 +141,7 @@
 <div>
 <label for="symN">Symmetry N:</label>
 <br>
-<input type="number" id="symN" style="width: 40px" onchange="setSymN()" value="6" min="1" step="1">
+<input type="number" id="symN" style="width: 40px" onchange="setSymN()" value="1" min="1" step="1">
 <p>
 <br>
 </div>
@@ -178,7 +178,7 @@
 <img src="resources/line.png" alt="Line" title="draw lines" style="border: 1px solid black"></img>
 </label>
 <br>
-<input type="radio" id="line" name="mode" onchange="setMode(1)" value="line" checked>
+<input type="radio" id="line" name="mode" onchange="setMode(1)" value="line">
 </div>
 
 <div style="float:left">
@@ -194,7 +194,7 @@
 <img src="resources/poly.png" alt="Polygon" title="draw polygons" style="border: 1px solid black"></img>
 </label>
 <br>
-<input type="radio" id="poly" name="mode" onchange="setMode(3)" value="poly">
+<input type="radio" id="poly" name="mode" onchange="setMode(3)" value="poly" checked>
 </div>
 
 <label for="ngon">Sides in polygon:</label>
@@ -204,7 +204,7 @@
 <br>
 <input type="color" id="color" onchange="setColor()"><label for="color"> Color</label>
 <br>
-<input type="checkbox" id="fill" onchange="setFill()"><label for="fill">Fill</label>
+<input type="checkbox" id="fill" onchange="setFill()" checked><label for="fill">Fill</label>
 <br>
 <input type="checkbox" id="snap" onchange="setSnap()"><label for="snap">Snap</label>
 <br>
